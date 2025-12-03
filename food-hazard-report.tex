@@ -10,7 +10,7 @@
 
 \begin{document}
 
-\title{Food Hazard Detection with a Dual-Path Transformer for SemEval 2025 Task 9}
+\title{Food Hazard Detection with a Multi-Task BERT for SemEval 2025 Task 9}
 
 \author{\IEEEauthorblockN{Gafna Al Faatiha Prabowo, Dzikran Azka Sajidan, Muhammad Khairul Hasbi, Rifky Setiawan}
 \IEEEauthorblockA{\textit{Department of Computer Science, Universitas Gadjah Mada}\\
@@ -21,7 +21,7 @@ Email: \{gafna, dzikran, khairul.hasbi, rifky.setiawan\}@mail.ugm.ac.id}
 \maketitle
 
 \begin{abstract}
-Kami berpartisipasi dalam SemEval 2025 Task 9 (Food Hazard Detection), Sub-Task 1, yang menuntut prediksi label hazard-category dan product-category dari judul recall makanan yang sangat pendek. Sistem kami memakai arsitektur multi-task berbasis \texttt{bert-base-uncased} dengan dua classification heads (hazard dan product) dan class weights untuk mengatasi imbalance. Macro F1 adalah metrik utama, dengan kinerja hazard mendominasi skor akhir. Pada dataset latih berisi 5{,}082 judul, model terbaik kami mencapai hazard macro F1 0{,}718, product macro F1 0{,}640 (combined 0{,}679) di validasi, dan combined macro F1 0{,}629 pada test blind. Kami menguraikan preprocessing, setup pelatihan (tokenisasi panjang 256, AdamW + linear warmup, early stopping), serta rencana ablation menuju submission akhir di Codalab.
+Kami berpartisipasi dalam SemEval 2025 Task 9 (Food Hazard Detection), Sub-Task 1, yang menuntut prediksi label hazard-category dan product-category dari judul recall makanan yang sangat pendek. Sistem kami memakai arsitektur multi-task berbasis \texttt{bert-base-uncased} dengan dua classification heads (hazard dan product) dan class weights untuk mengatasi imbalance. Macro F1 adalah metrik utama; secara internal kami merata-ratakan macro F1 hazard dan product, sementara skor resmi hanya menghitung product F1 bila hazard benar. Pada dataset latih berisi 5{,}082 judul, model terbaik kami mencapai hazard macro F1 0{,}718 dan product macro F1 0{,}640 (combined 0{,}679) di validasi, serta hazard 0{,}604 dan product 0{,}654 (combined 0{,}629) pada test blind. Kami menguraikan preprocessing, setup pelatihan (tokenisasi panjang 256, AdamW + linear warmup, early stopping), serta rencana ablation menuju submission akhir di Codalab.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -29,9 +29,9 @@ SemEval 2025, food safety, multi-task classification, transformers, class imbala
 \end{IEEEkeywords}
 
 \section{Pendahuluan}
-Deteksi cepat isu keamanan pangan penting untuk mereduksi risiko kesehatan publik. SemEval 2025 Task 9 menargetkan kategorisasi otomatis hazard dan produk dari judul recall yang sangat singkat, dengan distribusi label long-tail dan evaluasi macro F1 yang menekankan akurasi hazard. Pekerjaan ini menjelaskan sistem \texttt{bert-base-uncased} multi-task kami untuk Sub-Task 1 (prediksi kategori) beserta hasil awalnya.
+Deteksi cepat isu keamanan pangan penting untuk mereduksi risiko kesehatan publik. SemEval 2025 Task 9 menargetkan kategorisasi otomatis hazard dan produk dari judul recall yang sangat singkat, dengan distribusi label long-tail dan evaluasi macro F1 yang menekankan akurasi hazard. Pekerjaan ini menjelaskan sistem \texttt{bert-base-uncased} multi-task dua head kami untuk Sub-Task 1 (prediksi kategori) beserta hasil awalnya.
 
-Kontribusi kami: (1) model multi-task BERT dengan dua head klasifikasi dan class weights untuk hazard dan product; (2) pipeline tokenisasi judul (max length 256) dengan linear warmup scheduler, grad clipping, dan early stopping berbasis combined macro F1; (3) rencana ablation untuk membandingkan skema imbalance (class weights vs focal loss) dan potensi peningkatan encoder.
+Kontribusi kami: (1) baseline kuat berbasis BERT multi-task dengan dua head klasifikasi dan class weights untuk hazard dan product; (2) pipeline tokenisasi judul (max length 256) dengan linear warmup scheduler, grad clipping, dan early stopping berbasis combined macro F1; (3) rencana ablation untuk membandingkan skema imbalance (class weights vs focal loss) dan encoder lebih besar bila sumber daya memungkinkan.
 
 \section{Metodologi}
 \subsection{Tinjauan Pustaka}
@@ -43,13 +43,13 @@ Input berupa judul recall makanan berbahasa Inggris dengan metadata (year, month
 Kami memakai train set (5{,}082 sampel) dan validation set (565 sampel); test terdiri dari 997 sampel. Judul sangat singkat (rata-rata $\sim$88 karakter) dan distribusi label sangat imbalanced, terutama pada hazard minoritas (mis. kontaminan kimia tertentu). Label dienkode dengan \texttt{LabelEncoder} untuk hazard dan product; class weights dihitung dari distribusi train.
 
 \subsection{Gambaran Model}
-Kami menggunakan \texttt{bert-base-uncased} dengan arsitektur multi-task dua head: hazard head dan product head (linear 768$\rightarrow$kelas) di atas pooled output BERT. Dropout 0{,}2 diterapkan sebelum kedua head. Tidak ada engineered features atau fusion jalur kedua pada versi ini.
+Kami menggunakan \texttt{bert-base-uncased} dengan arsitektur multi-task dua head: hazard head dan product head (linear 768$\rightarrow$kelas) di atas pooled output BERT. Dropout 0{,}2 diterapkan sebelum kedua head. Tidak ada engineered features atau fusion jalur kedua pada versi ini; fokus pada fine-tuning teks dengan penanganan imbalance.
 
 \subsection{Pra-pemrosesan}
 Judul ditokenisasi dengan \texttt{BertTokenizer} (\texttt{bert-base-uncased}), max length 256, padding ke max length, dan truncation. Token type ids dipertahankan (BERT-style). Tidak ada fitur tambahan dari metadata pada eksperimen ini.
 
 \subsection{Pengaturan Pelatihan}
-Kami fine-tune selama hingga 8 epoch dengan AdamW (LR $2\text{e-}5$, weight decay 0{,}01), batch size 16. Linear warmup scheduler menggunakan 10\% langkah untuk warmup. Loss adalah penjumlahan dua \texttt{CrossEntropyLoss} berpenimbang kelas (hazard dan product). Gradients di-clip pada 1{,}0. Early stopping memakai patience 2 berdasarkan combined macro F1 validasi.
+Kami fine-tune selama hingga 8 epoch dengan AdamW (LR $2\text{e-}5$, weight decay 0{,}01), batch size 16. Linear warmup scheduler menggunakan 10\% langkah untuk warmup. Loss adalah penjumlahan dua \texttt{CrossEntropyLoss} berpenimbang kelas (hazard dan product). Gradients di-clip pada 1{,}0. Early stopping memakai patience 2 berdasarkan combined macro F1 validasi (rata-rata sederhana hazard dan product).
 
 \subsection{Baseline dan Variasi}
 \begin{itemize}
@@ -65,7 +65,7 @@ Kami memakai train (5{,}082) dan validation (565) yang disediakan. Tidak ada tes
 Metrik utama: macro F1 rata-rata hazard dan product, dengan hazard mendominasi karena protokol scoring. Kami juga melaporkan F1 per kelas untuk memeriksa hazard minoritas.
 
 \section{Hasil}
-Table~\ref{tab:results} merangkum run terbaik saat ini (dual-path dengan class weights). Macro F1 validasi mencapai puncak 0{,}679 combined, didorong hazard F1 0{,}718. Pada test blind, combined macro F1 0{,}629, dengan product F1 sedikit lebih tinggi dari hazard, mencerminkan tantangan long-tail pada hazard.
+Table~\ref{tab:results} merangkum run terbaik saat ini (BERT multi-task dengan class weights). Macro F1 validasi mencapai puncak 0{,}679 combined, didorong hazard F1 0{,}718. Pada test blind, combined macro F1 0{,}629; product F1 sedikit lebih tinggi dari hazard, sementara di validasi hazard tetap lebih tinggi.
 
 \begin{table}[htbp]
 \caption{Macro F1 Scores (best run)}
@@ -89,7 +89,7 @@ Test (blind) & 0.6043 & 0.6544 & 0.6293 \\
 \end{figure}
 
 \section{Interpretasi Hasil}
-Model meningkat stabil antar-epoch, dengan hazard F1 memimpin product F1 hingga konvergen. Gap validasi-test pada hazard (0{,}718 ke 0{,}604) mengindikasikan overfitting pada hazard langka dan domain shift antar-split. Product F1 sedikit lebih stabil, kemungkinan karena setiap kategori produk memiliki contoh lebih banyak. Skor combined didorong akurasi hazard, sehingga peningkatan berikutnya harus fokus pada recall hazard minoritas.
+Model meningkat stabil antar-epoch, dengan hazard F1 memimpin product F1 hingga konvergen di validasi. Gap validasi-test pada hazard (0{,}718 ke 0{,}604) mengindikasikan overfitting pada hazard langka dan domain shift antar-split. Product F1 di test lebih tinggi dari hazard, menunjukkan head product lebih generalis sementara hazard lebih sensitif ke distribusi. Skor combined didorong akurasi hazard, sehingga peningkatan berikutnya harus fokus pada recall hazard minoritas.
 
 \subsection{Error Analysis}
 Error awal mengelompok pada hazard minoritas; confusion matrix menunjukkan biological dan chemical menyerap kelas-kelas langka, menandakan perlunya penanganan imbalance yang lebih kuat (mis. focal loss atau oversampling). Kami akan memurnikan lexical cues dan menambah prior berbasis country, serta meninjau distribusi attention pada judul yang salah klasifikasi.
@@ -98,7 +98,7 @@ Error awal mengelompok pada hazard minoritas; confusion matrix menunjukkan biolo
 Engineered features diharapkan membantu recall hazard langka dengan menyuntikkan cues yang tidak selalu muncul di judul pendek. Risiko potensial mencakup overfitting pada lexicon dan manfaat terbatas bila cues jarang. Jika fusion tidak stabil, kami akan beralih ke text encoder lebih kuat (mis. \texttt{roberta-large}) sesuai batas sumber daya.
 
 \section{Kesimpulan dan Pekerjaan Lanjutan}
-Kami memaparkan sistem Transformer dual-path untuk SemEval 2025 Task 9 Sub-Task 1. Langkah berikutnya: menyelesaikan pelatihan, memperbarui Table~\ref{tab:results}, menjalankan ablation, dan mengirim prediksi ke Codalab. Pekerjaan lanjutan mencakup pemanfaatan data tak berlabel untuk domain-adaptive pretraining serta memanfaatkan supervisi hazard/product vector dari Sub-Task 2 sebagai auxiliary training.
+Kami memaparkan sistem Transformer multi-task BERT untuk SemEval 2025 Task 9 Sub-Task 1. Langkah berikutnya: menyelesaikan pelatihan, memperbarui Table~\ref{tab:results}, menjalankan ablation, dan mengirim prediksi ke Codalab. Pekerjaan lanjutan mencakup pemanfaatan data tak berlabel untuk domain-adaptive pretraining serta memanfaatkan supervisi hazard/product vector dari Sub-Task 2 sebagai auxiliary training.
 
 \section*{Acknowledgment}
 Kami berterima kasih kepada pengajar mata kuliah atas panduan, serta penyelenggara SemEval atas data dan baseline code.
