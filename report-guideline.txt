@@ -1,0 +1,14 @@
+[REGULER]
+
+Laporan Akhir (submit via Simaster, paling lambat 7 Desember, 23:59)
+Konten laporan:
+Abstrak: Ringkasan pekerjaan
+Pendahuluan: Latar belakang dan motivasi pemilihan masalah
+Metodologi: Pendekatan untuk menyelesaikan masalah, jelaskan metode deep learning yang digunakan
+Data & Eksperimen: Data, model, algoritma, dan setup eksperimen
+Hasil:
+Gunakan grafik, tabel, figure, atau visualisasi apa pun yang paling tepat untuk menyajikan hasil
+Interpretation of results: bagaimana hasil tersebut menjawab masalah kalian
+Diskusi: Limitasi dan bagaimana cara memperbaikinya
+Referensi
+4–6 halaman dalam format IEEE (https://www.ieee.org/conferences/publishing/templates)
