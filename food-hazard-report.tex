@@ -21,7 +21,7 @@ Email: \{gafna, dzikran, khairul.hasbi, rifky.setiawan\}@mail.ugm.ac.id}
 \maketitle
 
 \begin{abstract}
-We participate in SemEval 2025 Task 9 (Food Hazard Detection), Sub-Task 1, which requires predicting hazard-category and product-category labels from short food recall titles. We propose a dual-path architecture that fuses a pre-trained Transformer encoder with lightweight engineered features (title length, digit ratio, and lexical cues) in a shared classification head. Macro F1 is the primary metric, with hazard performance dominating the final score. On the provided 5{,}082-title training set, we use a fine-tuned Transformer as a baseline and aim to improve minority hazard recall via feature fusion and class imbalance handling. We outline preprocessing, training setup, and planned ablations toward the final Codalab submission.
+We participate in SemEval 2025 Task 9 (Food Hazard Detection), Sub-Task 1, which requires predicting hazard-category and product-category labels from short food recall titles. We propose a dual-path architecture that fuses a pre-trained Transformer encoder with lightweight engineered features (title length, digit ratio, and lexical cues) in a shared classification head. Macro F1 is the primary metric, with hazard performance dominating the final score. On the provided 5{,}082-title training set, our best model reaches 0.718 hazard macro F1, 0.640 product macro F1 (0.679 combined) on validation, and 0.629 combined macro F1 on the blind test split. We outline preprocessing, training setup, and planned ablations toward the final Codalab submission.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -66,25 +66,31 @@ We use the provided train (5{,}082) and validation (565) splits. No labeled test
 Primary: macro F1 averaged over hazard and product, with hazard dominating due to the scoring protocol. We also report per-class F1 to inspect minority hazards.
 
 \subsection{Results}
-Table~\ref{tab:results} will report validation macro F1 for the baseline and proposed models. At this stage, experiments are underway; placeholders are provided for completion after training.
+Table~\ref{tab:results} summarizes our current best run (dual-path model with class weights). Validation macro F1 peaks at 0.679 combined, driven by hazard F1 of 0.718. The blind test combined macro F1 is 0.629, with product F1 slightly higher than hazard, mirroring the long-tail difficulty for hazards.
 
 \begin{table}[htbp]
-\caption{Validation Macro F1 (to be updated)}
+\caption{Macro F1 Scores (best run)}
 \label{tab:results}
 \centering
-\begin{tabular}{lcc}
+\begin{tabular}{lccc}
 \hline
-Model & Hazard F1 & Overall Macro F1 \\
+Split & Hazard F1 & Product F1 & Combined \\
 \hline
-Baseline Transformer & -- & -- \\
-Dual-Path (ours) & -- & -- \\
-Dual-Path + focal loss & -- & -- \\
+Validation (best epoch) & 0.7183 & 0.6397 & 0.6790 \\
+Test (blind) & 0.6043 & 0.6544 & 0.6293 \\
 \hline
 \end{tabular}
 \end{table}
 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.45\textwidth]{figures/f1_curves.png}
+\caption{Validation macro F1 per epoch for hazard, product, and combined scores.}
+\label{fig:f1curves}
+\end{figure}
+
 \subsection{Error Analysis}
-We will inspect confusion matrices for hazard-category, focusing on minority classes, and review misclassified titles to refine cue lexicons and feature design. Attention-weight visualization (for interpretability) will be explored for qualitative insights.
+Early errors cluster in minority hazard categories; confusion matrices show biological and chemical hazards absorbing rare classes, indicating the need for stronger imbalance handling (e.g., focal loss or oversampling). We will refine cue lexicons and add country-aware priors, and inspect attention distributions for misclassified titles.
 
 \section{Discussion}
 Engineered features are expected to help rare hazard recall by injecting prior cues absent from short titles. Potential risks include overfitting lexicons and limited gains if cues are sparse. If fusion underperforms, we will revert to a stronger text encoder (e.g., \texttt{roberta-large}) within resource limits.
