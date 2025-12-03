@@ -21,52 +21,52 @@ Email: \{gafna, dzikran, khairul.hasbi, rifky.setiawan\}@mail.ugm.ac.id}
 \maketitle
 
 \begin{abstract}
-We participate in SemEval 2025 Task 9 (Food Hazard Detection), Sub-Task 1, which requires predicting hazard-category and product-category labels from short food recall titles. We propose a dual-path architecture that fuses a pre-trained Transformer encoder with lightweight engineered features (title length, digit ratio, and lexical cues) in a shared classification head. Macro F1 is the primary metric, with hazard performance dominating the final score. On the provided 5{,}082-title training set, our best model reaches 0.718 hazard macro F1, 0.640 product macro F1 (0.679 combined) on validation, and 0.629 combined macro F1 on the blind test split. We outline preprocessing, training setup, and planned ablations toward the final Codalab submission.
+Kami berpartisipasi dalam SemEval 2025 Task 9 (Food Hazard Detection), Sub-Task 1, yang menuntut prediksi label hazard-category dan product-category dari judul recall makanan yang sangat pendek. Kami mengusulkan arsitektur dual-path yang menggabungkan encoder Transformer pralatih dengan engineered features ringan (panjang judul, rasio digit, dan lexical cues) pada classification head bersama. Macro F1 adalah metrik utama, dengan kinerja hazard mendominasi skor akhir. Pada dataset latih berisi 5{,}082 judul, model terbaik kami mencapai hazard macro F1 0{,}718, product macro F1 0{,}640 (combined 0{,}679) di validasi, dan combined macro F1 0{,}629 pada test blind. Kami menguraikan preprocessing, setup pelatihan, serta rencana ablation menuju submission akhir di Codalab.
 \end{abstract}
 
 \begin{IEEEkeywords}
 SemEval 2025, food safety, multi-task classification, transformers, class imbalance.
 \end{IEEEkeywords}
 
-\section{Introduction}
-Rapid detection of food safety issues is critical to mitigate public health risks. SemEval 2025 Task 9 targets automatic hazard and product categorization from short recall titles, where texts are brief, labels are long-tailed, and performance is reported via macro F1 with emphasis on hazard accuracy. This work describes our system for Sub-Task 1 (category prediction) and its initial results.
+\section{Pendahuluan}
+Deteksi cepat isu keamanan pangan penting untuk mereduksi risiko kesehatan publik. SemEval 2025 Task 9 menargetkan kategorisasi otomatis hazard dan produk dari judul recall yang sangat singkat, dengan distribusi label long-tail dan evaluasi macro F1 yang menekankan akurasi hazard. Pekerjaan ini menjelaskan sistem kami untuk Sub-Task 1 (prediksi kategori) beserta hasil awalnya.
 
-Our contributions are: (1) a dual-path model that fuses a Transformer text encoder with engineered meta-features; (2) class imbalance handling using loss re-weighting and data augmentation for minority hazards; and (3) an ablation plan and error analysis tailored to the competition metric.
+Kontribusi kami: (1) model dual-path yang menggabungkan Transformer text encoder dengan engineered meta-features; (2) penanganan class imbalance memakai loss re-weighting dan augmentasi data untuk hazard minoritas; dan (3) rencana ablation serta analisis error yang selaras dengan metrik kompetisi.
 
-\section{Related Work}
-Transformer-based encoders such as BERT and RoBERTa have set strong baselines for short-text classification \cite{devlin2019bert}. Class imbalance is commonly addressed with focal loss \cite{lin2017focal} or class weights. Explainable food risk detection remains underexplored, with prior work focusing on hazard identification but not short-title categorization.
+\section{Metodologi}
+\subsection{Tinjauan Pustaka}
+Encoder berbasis Transformer seperti BERT dan RoBERTa menjadi baseline kuat untuk klasifikasi short-text \cite{devlin2019bert}. Class imbalance lazim ditangani dengan focal loss \cite{lin2017focal} atau class weights. Deteksi risiko pangan yang explainable masih minim dieksplorasi; studi sebelumnya banyak fokus pada identifikasi hazard, bukan kategorisasi judul pendek.
 
-\section{Task and Data}
-The task inputs are English food recall titles with metadata (year, month, day, country). Outputs are two single-label predictions: hazard-category (10 classes) and product-category (22 classes). The official macro F1 scoring averages hazard F1 and product F1, but product F1 is only computed on samples with correct hazard predictions.
+\subsection{Tugas dan Data}
+Input berupa judul recall makanan berbahasa Inggris dengan metadata (year, month, day, country). Output adalah dua prediksi single-label: hazard-category (10 kelas) dan product-category (22 kelas). Skor resmi macro F1 menghitung rata-rata hazard F1 dan product F1, namun product F1 hanya diambil pada sampel dengan prediksi hazard yang benar.
 
-We use the released training set (5{,}082 samples) and validation set (565 samples); test has 997 samples. Titles are short (avg. $\sim$88 characters) and the label distribution is heavily imbalanced, especially for minority hazards (e.g., certain chemical contaminants).
+Kami memakai train set (5{,}082 sampel) dan validation set (565 sampel); test terdiri dari 997 sampel. Judul sangat singkat (rata-rata $\sim$88 karakter) dan distribusi label sangat imbalanced, terutama pada hazard minoritas (mis. kontaminan kimia tertentu).
 
-\section{Methodology}
-\subsection{Model Overview}
-We adopt a dual-path architecture. Path A is a Transformer encoder (initially \texttt{bert-base-uncased}/\texttt{roberta-base}) producing a pooled text embedding. Path B ingests engineered features: normalized title length, digit ratio, presence of hazard/product cue lexicons, and country one-hot. The two vectors are concatenated and fed into a shared MLP, branching into two classification heads for hazard-category and product-category.
+\subsection{Gambaran Model}
+Kami mengadopsi arsitektur dual-path. Path A adalah Transformer encoder (awal: \texttt{bert-base-uncased}/\texttt{roberta-base}) yang menghasilkan pooled text embedding. Path B memproses engineered features: panjang judul ternormalisasi, rasio digit, keberadaan lexical cues hazard/product, dan country one-hot. Kedua vektor digabung (concatenate) lalu masuk ke MLP bersama yang bercabang menjadi dua classification heads untuk hazard-category dan product-category.
 
-\subsection{Preprocessing}
-We lowercase (for BERT) or leave cased (for RoBERTa), strip URLs and repeated whitespace, and truncate/pad to 128 tokens. Country codes are retained as categorical features. Simple lexicons (e.g., \{salmonella, listeria, aflatoxin\}) seed binary cue indicators.
+\subsection{Pra-pemrosesan}
+Kami lowercase (untuk BERT) atau tetap cased (untuk RoBERTa), menghapus URL dan whitespace ganda, serta truncate/pad hingga 128 token. Country code dipertahankan sebagai fitur kategorikal. Lexicon sederhana (mis. \{salmonella, listeria, aflatoxin\}) dipakai sebagai indikator biner cues.
 
-\subsection{Training Setup}
-We fine-tune with AdamW, learning rate $2\text{e-}5$--$5\text{e-}5$, batch size 16--32, for 3--5 epochs. Loss combines two cross-entropy terms with class weights estimated from training label frequencies; we will also test focal loss. Dropout (0.1--0.2) regularizes the MLP head. Early stopping monitors macro F1 on the validation set.
+\subsection{Pengaturan Pelatihan}
+Kami fine-tune dengan AdamW, learning rate $2\\text{e-}5$--$5\\text{e-}5$, batch size 16--32, selama 3--5 epoch. Loss menggabungkan dua cross-entropy dengan class weights dari frekuensi label latih; kami juga menguji focal loss. Dropout (0.1--0.2) dipakai pada MLP head. Early stopping memonitor macro F1 di validation set.
 
-\subsection{Baselines and Variants}
+\subsection{Baseline dan Variasi}
 \begin{itemize}
-    \item \textbf{Baseline}: Transformer-only dual-head classifier (no engineered features).
-    \item \textbf{Proposed}: Dual-path fusion with engineered features.
-    \item \textbf{Ablations}: (i) remove lexicon cues; (ii) remove country feature; (iii) compare class weights vs focal loss.
+    \item \textbf{Baseline}: Transformer-only dual-head classifier (tanpa engineered features).
+    \item \textbf{Usulan}: Dual-path fusion dengan engineered features.
+    \item \textbf{Ablation}: (i) hapus lexical cues; (ii) hapus fitur country; (iii) bandingkan class weights vs focal loss.
 \end{itemize}
 
-\section{Experiments}
-\subsection{Dataset Splits}
-We use the provided train (5{,}082) and validation (565) splits. No labeled test is available; Codalab handles blind evaluation.
+\section{Data \& Eksperimen}
+\subsection{Pembagian Dataset}
+Kami memakai train (5{,}082) dan validation (565) yang disediakan. Tidak ada test berlabel; evaluasi blind ditangani oleh Codalab.
 
-\subsection{Evaluation Metrics}
-Primary: macro F1 averaged over hazard and product, with hazard dominating due to the scoring protocol. We also report per-class F1 to inspect minority hazards.
+\subsection{Metrik Evaluasi}
+Metrik utama: macro F1 rata-rata hazard dan product, dengan hazard mendominasi karena protokol scoring. Kami juga melaporkan F1 per kelas untuk memeriksa hazard minoritas.
 
-\subsection{Results}
-Table~\ref{tab:results} summarizes our current best run (dual-path model with class weights). Validation macro F1 peaks at 0.679 combined, driven by hazard F1 of 0.718. The blind test combined macro F1 is 0.629, with product F1 slightly higher than hazard, mirroring the long-tail difficulty for hazards.
+\section{Hasil}
+Table~\ref{tab:results} merangkum run terbaik saat ini (dual-path dengan class weights). Macro F1 validasi mencapai puncak 0{,}679 combined, didorong hazard F1 0{,}718. Pada test blind, combined macro F1 0{,}629, dengan product F1 sedikit lebih tinggi dari hazard, mencerminkan tantangan long-tail pada hazard.
 
 \begin{table}[htbp]
 \caption{Macro F1 Scores (best run)}
@@ -89,17 +89,20 @@ Test (blind) & 0.6043 & 0.6544 & 0.6293 \\
 \label{fig:f1curves}
 \end{figure}
 
+\section{Interpretasi Hasil}
+Model meningkat stabil antar-epoch, dengan hazard F1 memimpin product F1 hingga konvergen. Gap validasi-test pada hazard (0{,}718 ke 0{,}604) mengindikasikan overfitting pada hazard langka dan domain shift antar-split. Product F1 sedikit lebih stabil, kemungkinan karena setiap kategori produk memiliki contoh lebih banyak. Skor combined didorong akurasi hazard, sehingga peningkatan berikutnya harus fokus pada recall hazard minoritas.
+
 \subsection{Error Analysis}
-Early errors cluster in minority hazard categories; confusion matrices show biological and chemical hazards absorbing rare classes, indicating the need for stronger imbalance handling (e.g., focal loss or oversampling). We will refine cue lexicons and add country-aware priors, and inspect attention distributions for misclassified titles.
+Error awal mengelompok pada hazard minoritas; confusion matrix menunjukkan biological dan chemical menyerap kelas-kelas langka, menandakan perlunya penanganan imbalance yang lebih kuat (mis. focal loss atau oversampling). Kami akan memurnikan lexical cues dan menambah prior berbasis country, serta meninjau distribusi attention pada judul yang salah klasifikasi.
 
-\section{Discussion}
-Engineered features are expected to help rare hazard recall by injecting prior cues absent from short titles. Potential risks include overfitting lexicons and limited gains if cues are sparse. If fusion underperforms, we will revert to a stronger text encoder (e.g., \texttt{roberta-large}) within resource limits.
+\section{Diskusi}
+Engineered features diharapkan membantu recall hazard langka dengan menyuntikkan cues yang tidak selalu muncul di judul pendek. Risiko potensial mencakup overfitting pada lexicon dan manfaat terbatas bila cues jarang. Jika fusion tidak stabil, kami akan beralih ke text encoder lebih kuat (mis. \texttt{roberta-large}) sesuai batas sumber daya.
 
-\section{Conclusion and Future Work}
-We outlined a dual-path Transformer system for SemEval 2025 Task 9 Sub-Task 1. Next steps are to complete training, fill Table~\ref{tab:results}, run ablations, and submit predictions to Codalab. Future work includes leveraging unlabeled data for domain-adaptive pretraining and incorporating hazard/product vector supervision from Sub-Task 2 for auxiliary training.
+\section{Kesimpulan dan Pekerjaan Lanjutan}
+Kami memaparkan sistem Transformer dual-path untuk SemEval 2025 Task 9 Sub-Task 1. Langkah berikutnya: menyelesaikan pelatihan, memperbarui Table~\ref{tab:results}, menjalankan ablation, dan mengirim prediksi ke Codalab. Pekerjaan lanjutan mencakup pemanfaatan data tak berlabel untuk domain-adaptive pretraining serta memanfaatkan supervisi hazard/product vector dari Sub-Task 2 sebagai auxiliary training.
 
 \section*{Acknowledgment}
-We thank the course instructors for guidance and the SemEval organizers for providing data and baseline code.
+Kami berterima kasih kepada pengajar mata kuliah atas panduan, serta penyelenggara SemEval atas data dan baseline code.
 
 \begin{thebibliography}{00}
 \bibitem{devlin2019bert} J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova, ``BERT: Pre-training of deep bidirectional transformers for language understanding,'' in \textit{Proc. NAACL-HLT}, 2019.
