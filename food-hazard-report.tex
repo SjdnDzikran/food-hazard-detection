@@ -95,7 +95,7 @@ Model meningkat stabil antar-epoch, dengan hazard F1 memimpin product F1 hingga 
 Error awal mengelompok pada hazard minoritas; confusion matrix menunjukkan biological dan chemical menyerap kelas-kelas langka, menandakan perlunya penanganan imbalance yang lebih kuat (mis. focal loss atau oversampling). Kami akan memurnikan lexical cues dan menambah prior berbasis country, serta meninjau distribusi attention pada judul yang salah klasifikasi.
 
 \section{Diskusi}
-Engineered features diharapkan membantu recall hazard langka dengan menyuntikkan cues yang tidak selalu muncul di judul pendek. Risiko potensial mencakup overfitting pada lexicon dan manfaat terbatas bila cues jarang. Jika fusion tidak stabil, kami akan beralih ke text encoder lebih kuat (mis. \texttt{roberta-large}) sesuai batas sumber daya.
+Model teks-only ini sudah memberi kenaikan signifikan dibanding baseline awal. Arah berikutnya adalah menambahkan engineered features (lexical cues, panjang judul, country) dalam kerangka dual-path sebagai ablation; risikonya overfitting pada lexicon jika frekuensi rendah. Jika fusion kurang stabil atau sumber daya mencukupi, opsi lain adalah mencoba encoder lebih kuat (mis. \texttt{roberta-base/large}).
 
 \section{Kesimpulan dan Pekerjaan Lanjutan}
 Kami memaparkan sistem Transformer multi-task BERT untuk SemEval 2025 Task 9 Sub-Task 1. Langkah berikutnya: menyelesaikan pelatihan, memperbarui Table~\ref{tab:results}, menjalankan ablation, dan mengirim prediksi ke Codalab. Pekerjaan lanjutan mencakup pemanfaatan data tak berlabel untuk domain-adaptive pretraining serta memanfaatkan supervisi hazard/product vector dari Sub-Task 2 sebagai auxiliary training.
