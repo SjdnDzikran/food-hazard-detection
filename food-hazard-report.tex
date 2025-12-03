@@ -1,0 +1,103 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+
+\begin{document}
+
+\title{Food Hazard Detection with a Dual-Path Transformer for SemEval 2025 Task 9}
+
+\author{\IEEEauthorblockN{Gafna Al Faatiha Prabowo, Dzikran Azka Sajidan, Muhammad Khairul Hasbi, Rifky Setiawan}
+\IEEEauthorblockA{\textit{Department of Computer Science, Universitas Gadjah Mada}\\
+Yogyakarta, Indonesia\\
+Email: \{gafna, dzikran, khairul.hasbi, rifky.setiawan\}@mail.ugm.ac.id}
+}
+
+\maketitle
+
+\begin{abstract}
+We participate in SemEval 2025 Task 9 (Food Hazard Detection), Sub-Task 1, which requires predicting hazard-category and product-category labels from short food recall titles. We propose a dual-path architecture that fuses a pre-trained Transformer encoder with lightweight engineered features (title length, digit ratio, and lexical cues) in a shared classification head. Macro F1 is the primary metric, with hazard performance dominating the final score. On the provided 5{,}082-title training set, we use a fine-tuned Transformer as a baseline and aim to improve minority hazard recall via feature fusion and class imbalance handling. We outline preprocessing, training setup, and planned ablations toward the final Codalab submission.
+\end{abstract}
+
+\begin{IEEEkeywords}
+SemEval 2025, food safety, multi-task classification, transformers, class imbalance.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Rapid detection of food safety issues is critical to mitigate public health risks. SemEval 2025 Task 9 targets automatic hazard and product categorization from short recall titles, where texts are brief, labels are long-tailed, and performance is reported via macro F1 with emphasis on hazard accuracy. This work describes our system for Sub-Task 1 (category prediction) and its initial results.
+
+Our contributions are: (1) a dual-path model that fuses a Transformer text encoder with engineered meta-features; (2) class imbalance handling using loss re-weighting and data augmentation for minority hazards; and (3) an ablation plan and error analysis tailored to the competition metric.
+
+\section{Related Work}
+Transformer-based encoders such as BERT and RoBERTa have set strong baselines for short-text classification \cite{devlin2019bert}. Class imbalance is commonly addressed with focal loss \cite{lin2017focal} or class weights. Explainable food risk detection remains underexplored, with prior work focusing on hazard identification but not short-title categorization.
+
+\section{Task and Data}
+The task inputs are English food recall titles with metadata (year, month, day, country). Outputs are two single-label predictions: hazard-category (10 classes) and product-category (22 classes). The official macro F1 scoring averages hazard F1 and product F1, but product F1 is only computed on samples with correct hazard predictions.
+
+We use the released training set (5{,}082 samples) and validation set (565 samples); test has 997 samples. Titles are short (avg. $\sim$88 characters) and the label distribution is heavily imbalanced, especially for minority hazards (e.g., certain chemical contaminants).
+
+\section{Methodology}
+\subsection{Model Overview}
+We adopt a dual-path architecture. Path A is a Transformer encoder (initially \texttt{bert-base-uncased}/\texttt{roberta-base}) producing a pooled text embedding. Path B ingests engineered features: normalized title length, digit ratio, presence of hazard/product cue lexicons, and country one-hot. The two vectors are concatenated and fed into a shared MLP, branching into two classification heads for hazard-category and product-category.
+
+\subsection{Preprocessing}
+We lowercase (for BERT) or leave cased (for RoBERTa), strip URLs and repeated whitespace, and truncate/pad to 128 tokens. Country codes are retained as categorical features. Simple lexicons (e.g., \{salmonella, listeria, aflatoxin\}) seed binary cue indicators.
+
+\subsection{Training Setup}
+We fine-tune with AdamW, learning rate $2\text{e-}5$--$5\text{e-}5$, batch size 16--32, for 3--5 epochs. Loss combines two cross-entropy terms with class weights estimated from training label frequencies; we will also test focal loss. Dropout (0.1--0.2) regularizes the MLP head. Early stopping monitors macro F1 on the validation set.
+
+\subsection{Baselines and Variants}
+\begin{itemize}
+    \item \textbf{Baseline}: Transformer-only dual-head classifier (no engineered features).
+    \item \textbf{Proposed}: Dual-path fusion with engineered features.
+    \item \textbf{Ablations}: (i) remove lexicon cues; (ii) remove country feature; (iii) compare class weights vs focal loss.
+\end{itemize}
+
+\section{Experiments}
+\subsection{Dataset Splits}
+We use the provided train (5{,}082) and validation (565) splits. No labeled test is available; Codalab handles blind evaluation.
+
+\subsection{Evaluation Metrics}
+Primary: macro F1 averaged over hazard and product, with hazard dominating due to the scoring protocol. We also report per-class F1 to inspect minority hazards.
+
+\subsection{Results}
+Table~\ref{tab:results} will report validation macro F1 for the baseline and proposed models. At this stage, experiments are underway; placeholders are provided for completion after training.
+
+\begin{table}[htbp]
+\caption{Validation Macro F1 (to be updated)}
+\label{tab:results}
+\centering
+\begin{tabular}{lcc}
+\hline
+Model & Hazard F1 & Overall Macro F1 \\
+\hline
+Baseline Transformer & -- & -- \\
+Dual-Path (ours) & -- & -- \\
+Dual-Path + focal loss & -- & -- \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Error Analysis}
+We will inspect confusion matrices for hazard-category, focusing on minority classes, and review misclassified titles to refine cue lexicons and feature design. Attention-weight visualization (for interpretability) will be explored for qualitative insights.
+
+\section{Discussion}
+Engineered features are expected to help rare hazard recall by injecting prior cues absent from short titles. Potential risks include overfitting lexicons and limited gains if cues are sparse. If fusion underperforms, we will revert to a stronger text encoder (e.g., \texttt{roberta-large}) within resource limits.
+
+\section{Conclusion and Future Work}
+We outlined a dual-path Transformer system for SemEval 2025 Task 9 Sub-Task 1. Next steps are to complete training, fill Table~\ref{tab:results}, run ablations, and submit predictions to Codalab. Future work includes leveraging unlabeled data for domain-adaptive pretraining and incorporating hazard/product vector supervision from Sub-Task 2 for auxiliary training.
+
+\section*{Acknowledgment}
+We thank the course instructors for guidance and the SemEval organizers for providing data and baseline code.
+
+\begin{thebibliography}{00}
+\bibitem{devlin2019bert} J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova, ``BERT: Pre-training of deep bidirectional transformers for language understanding,'' in \textit{Proc. NAACL-HLT}, 2019.
+\bibitem{lin2017focal} T.-Y. Lin, P. Goyal, R. Girshick, K. He, and P. Doll{\'a}r, ``Focal loss for dense object detection,'' in \textit{Proc. ICCV}, 2017.
+\end{thebibliography}
+
+\end{document}
