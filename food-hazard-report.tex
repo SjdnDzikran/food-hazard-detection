@@ -100,7 +100,17 @@ Error awal mengelompok pada hazard minoritas; confusion matrix menunjukkan biolo
 Model teks-only ini sudah memberi kenaikan signifikan dibanding baseline awal. Arah berikutnya adalah menambahkan engineered features (lexical cues, panjang judul, country) dalam kerangka dual-path sebagai ablation; risikonya overfitting pada lexicon jika frekuensi rendah. Jika fusion kurang stabil atau sumber daya mencukupi, opsi lain adalah mencoba encoder lebih kuat (mis. \texttt{roberta-base/large}).
 
 \section{Kesimpulan dan Pekerjaan Lanjutan}
-Kami memaparkan sistem Transformer multi-task BERT untuk SemEval 2025 Task 9 Sub-Task 1. Langkah berikutnya: menyelesaikan pelatihan, memperbarui Table~\ref{tab:results}, menjalankan ablation, dan mengirim prediksi ke Codalab. Kode sumber tersedia di \url{https://github.com/SjdnDzikran/food-hazard-detection}. Pekerjaan lanjutan mencakup pemanfaatan data tak berlabel untuk domain-adaptive pretraining dan eksplorasi signal auxiliary untuk memperkuat prediksi hazard dan product.
+Kami memaparkan sistem Transformer multi-task berbasis BERT untuk SemEval 2025 Task 9 Sub-Task 1 yang berhasil mengklasifikasikan hazard dan product categories dari judul recall makanan yang sangat pendek. Model \texttt{bert-base-uncased} dengan dua classification heads dan class weights mencapai combined macro F1 sebesar 0{,}679 pada validation set dan 0{,}629 pada test blind set. Hasil ini menunjukkan bahwa pendekatan multi-task learning efektif untuk tugas klasifikasi ganda pada teks singkat dengan distribusi label yang tidak seimbang.
+
+Pekerjaan lanjutan mencakup beberapa arah:
+\begin{itemize}
+    \item \textbf{Penanganan imbalance yang lebih baik}: menjalankan ablation untuk membandingkan class weights vs focal loss, serta eksplorasi teknik oversampling untuk meningkatkan recall pada hazard minoritas.
+    \item \textbf{Arsitektur alternatif}: mencoba encoder yang lebih besar seperti \texttt{roberta-base} atau \texttt{roberta-large} jika sumber daya komputasi mencukupi.
+    \item \textbf{Feature engineering}: menambahkan fitur tambahan dari metadata (country, temporal features) dalam kerangka dual-path untuk memperkaya representasi.
+    \item \textbf{Domain-adaptive pretraining}: memanfaatkan data tak berlabel dari domain keamanan pangan untuk meningkatkan kemampuan generalisasi model.
+\end{itemize}
+
+Kode sumber lengkap tersedia di \url{https://github.com/SjdnDzikran/food-hazard-detection}.
 
 \section*{Acknowledgment}
 Kami berterima kasih kepada pengajar mata kuliah atas panduan, serta penyelenggara SemEval atas data dan baseline code.
