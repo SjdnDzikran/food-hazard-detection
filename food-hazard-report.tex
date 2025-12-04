@@ -31,13 +31,15 @@ SemEval 2025, food safety, multi-task classification, transformers, class imbala
 \end{IEEEkeywords}
 
 \section{Pendahuluan}
-Deteksi cepat isu keamanan pangan penting untuk mereduksi risiko kesehatan publik. SemEval 2025 Task 9 menargetkan kategorisasi otomatis hazard dan produk dari judul recall yang sangat singkat, dengan distribusi label long-tail dan evaluasi macro F1 yang menekankan akurasi hazard. Pekerjaan ini menjelaskan sistem \texttt{bert-base-uncased} multi-task dua head kami untuk Sub-Task 1 (prediksi kategori) beserta hasil awalnya.
+Keamanan pangan merupakan isu kesehatan publik yang krusial. Kategorisasi cepat terhadap bahaya (hazard) dan produk dari laporan recall sangat penting untuk respons tepat waktu, namun proses manual memerlukan waktu dan tenaga signifikan. SemEval 2025 Task 9 menangani ini dengan menyediakan framework untuk kategorisasi otomatis dari judul recall yang sangat singkat ($\sim$88 karakter). Sub-Task 1 memerlukan prediksi simultan hazard-category (10 kelas) dan product-category (22 kelas), dengan tantangan: teks sangat pendek, distribusi label sangat tidak seimbang, dan evaluasi macro F1 yang menekankan performa pada semua kelas.
 
-Kontribusi kami: (1) baseline kuat berbasis BERT multi-task dengan dua head klasifikasi dan class weights untuk hazard dan product; (2) pipeline tokenisasi judul (max length 256) dengan linear warmup scheduler, grad clipping, dan early stopping berbasis combined macro F1; (3) rencana ablation untuk membandingkan skema imbalance (class weights vs focal loss) dan encoder lebih besar bila sumber daya memungkinkan.
+Kami mengembangkan sistem multi-task berbasis \texttt{bert-base-uncased} dengan dua classification heads dan class weights untuk menangani imbalance. Model mencapai combined macro F1 0{,}679 pada validasi dan 0{,}629 pada test set. Kontribusi kami: (1) arsitektur multi-task BERT dengan penanganan class imbalance, (2) pipeline pelatihan dengan early stopping berbasis combined macro F1, dan (3) analisis gap validasi-test yang mengidentifikasi tantangan pada hazard minoritas.
 
 \section{Metodologi}
 \subsection{Tinjauan Pustaka}
-Encoder berbasis Transformer seperti BERT dan RoBERTa menjadi baseline kuat untuk klasifikasi short-text \cite{devlin2019bert}. Class imbalance lazim ditangani dengan focal loss \cite{lin2017focal} atau class weights. Deteksi risiko pangan yang explainable masih minim dieksplorasi; studi sebelumnya banyak fokus pada identifikasi hazard, bukan kategorisasi judul pendek.
+Transformer-based encoders seperti BERT \cite{devlin2019bert} telah menjadi arsitektur standar untuk klasifikasi teks, menunjukkan performa unggul pada berbagai tugas NLP termasuk klasifikasi short-text. Pre-trained language models ini memanfaatkan self-attention mechanism untuk menangkap dependensi kontekstual dalam teks. Untuk tugas multi-label atau multi-task, pendekatan umum adalah menambahkan classification heads terpisah di atas shared encoder.
+
+Class imbalance merupakan tantangan umum dalam klasifikasi, terutama dengan distribusi long-tail. Focal loss \cite{lin2017focal} dirancang untuk mengurangi bobot sampel yang mudah diklasifikasi dan fokus pada kasus sulit. Alternatif lain adalah class weighting yang memberikan bobot lebih tinggi pada kelas minoritas dalam loss function. Dalam konteks keamanan pangan, deteksi hazard otomatis masih terbatas, dengan sebagian besar studi fokus pada identifikasi keberadaan hazard, bukan kategorisasi detil dari teks pendek.
 
 \subsection{Tugas dan Data}
 Input berupa judul recall makanan berbahasa Inggris dengan metadata (year, month, day, country). Output adalah dua prediksi single-label: hazard-category (10 kelas) dan product-category (22 kelas). Skor resmi macro F1 menghitung rata-rata hazard F1 dan product F1, namun product F1 hanya diambil pada sampel dengan prediksi hazard yang benar.
@@ -47,27 +49,19 @@ Kami memakai train set (5{,}082 sampel) dan validation set (565 sampel); test te
 \subsection{Gambaran Model}
 Kami menggunakan \texttt{bert-base-uncased} dengan arsitektur multi-task dua head: hazard head dan product head (linear 768$\rightarrow$kelas) di atas pooled output BERT. Dropout 0{,}2 diterapkan sebelum kedua head. Tidak ada engineered features atau fusion jalur kedua pada versi ini; fokus pada fine-tuning teks dengan penanganan imbalance.
 
-\subsection{Pra-pemrosesan}
-Judul ditokenisasi dengan \texttt{BertTokenizer} (\texttt{bert-base-uncased}), max length 256, padding ke max length, dan truncation. Token type ids dipertahankan (BERT-style). Tidak ada fitur tambahan dari metadata pada eksperimen ini.
+\subsection{Implementasi}
+\textbf{Preprocessing}: Judul ditokenisasi dengan \texttt{BertTokenizer} (\texttt{bert-base-uncased}), max length 256, dengan padding dan truncation. Token type ids dipertahankan untuk kompatibilitas BERT. Pada eksperimen ini, tidak ada fitur tambahan dari metadata yang digunakan.
 
-\subsection{Pengaturan Pelatihan}
-Kami fine-tune selama hingga 8 epoch dengan AdamW (LR $2\text{e-}5$, weight decay 0{,}01), batch size 16. Linear warmup scheduler menggunakan 10\% langkah untuk warmup. Loss adalah penjumlahan dua \texttt{CrossEntropyLoss} berpenimbang kelas (hazard dan product). Gradients di-clip pada 1{,}0. Early stopping memakai patience 2 berdasarkan combined macro F1 validasi (rata-rata sederhana hazard dan product).
+\textbf{Training}: Model di-fine-tune hingga 8 epoch dengan optimizer AdamW (learning rate $2\times10^{-5}$, weight decay 0{,}01), batch size 16. Linear warmup scheduler diterapkan pada 10\% langkah awal. Loss function adalah penjumlahan dua \texttt{CrossEntropyLoss} dengan class weights untuk hazard dan product heads. Gradient clipping pada norm 1{,}0 digunakan untuk stabilitas. Early stopping dengan patience 2 berdasarkan combined macro F1 validasi (rata-rata arithmetic hazard dan product F1).
 
-\subsection{Baseline dan Variasi}
-\begin{itemize}
-    \item \textbf{Baseline/Current}: BERT multi-task dua head dengan class weights (tanpa engineered features).
-    \item \textbf{Ablation yang direncanakan}: membandingkan class weights vs focal loss; mencoba encoder lebih besar (mis. \texttt{roberta-base}) jika sumber daya memungkinkan.
-\end{itemize}
+\subsection{Evaluasi}
+Dataset dibagi menjadi train (5{,}082 sampel), validation (565 sampel), dan test (997 sampel). Test set tidak memiliki label publik; evaluasi dilakukan secara blind melalui platform Codalab. Metrik evaluasi utama adalah combined macro F1, yang merupakan rata-rata dari hazard macro F1 dan product macro F1. Skor resmi menggunakan protokol khusus di mana product F1 hanya dihitung pada sampel dengan prediksi hazard yang benar.
 
-\section{Data \& Eksperimen}
-\subsection{Pembagian Dataset}
-Kami memakai train (5{,}082) dan validation (565) yang disediakan. Tidak ada test berlabel; evaluasi blind ditangani oleh Codalab.
+\section{Hasil dan Analisis}
+\subsection{Performa Model}
+Table~\ref{tab:results} menunjukkan performa model terbaik pada validation dan test sets. Model mencapai combined macro F1 sebesar 0{,}679 pada validation set, dengan hazard F1 (0{,}718) lebih tinggi dari product F1 (0{,}640). Pada test set, combined macro F1 mencapai 0{,}629, dengan product F1 (0{,}654) sedikit lebih tinggi dari hazard F1 (0{,}604). Penurunan hazard F1 dari validasi ke test sebesar 0{,}114 poin mengindikasikan overfitting pada kategori hazard tertentu.
 
-\subsection{Metrik Evaluasi}
-Metrik utama: macro F1 rata-rata hazard dan product, dengan hazard mendominasi karena protokol scoring. Kami juga melaporkan F1 per kelas untuk memeriksa hazard minoritas.
-
-\section{Hasil}
-Table~\ref{tab:results} merangkum run terbaik saat ini (BERT multi-task dengan class weights). Macro F1 validasi mencapai puncak 0{,}679 combined, didorong hazard F1 0{,}718. Pada test blind, combined macro F1 0{,}629; product F1 sedikit lebih tinggi dari hazard, sementara di validasi hazard tetap lebih tinggi.
+Figure~\ref{fig:f1curves} menunjukkan kurva learning selama pelatihan. Model konvergen setelah epoch ke-4, dengan hazard F1 konsisten lebih tinggi dari product F1 pada validation set. Early stopping dipicu pada epoch ke-6 berdasarkan combined macro F1.
 
 \begin{table}[htbp]
 \caption{Macro F1 Scores (best run)}
@@ -90,14 +84,22 @@ Test (blind) & 0.6043 & 0.6544 & 0.6293 \\
 \label{fig:f1curves}
 \end{figure}
 
-\section{Interpretasi Hasil}
-Model meningkat stabil antar-epoch, dengan hazard F1 memimpin product F1 hingga konvergen di validasi. Gap validasi-test pada hazard (0{,}718 ke 0{,}604) mengindikasikan overfitting pada hazard langka dan domain shift antar-split. Product F1 di test lebih tinggi dari hazard, menunjukkan head product lebih generalis sementara hazard lebih sensitif ke distribusi. Skor combined didorong akurasi hazard, sehingga peningkatan berikutnya harus fokus pada recall hazard minoritas.
+\subsection{Analisis}
+Analisis performa model mengungkapkan beberapa temuan penting:
 
-\subsection{Error Analysis}
-Error awal mengelompok pada hazard minoritas; confusion matrix menunjukkan biological dan chemical menyerap kelas-kelas langka, menandakan perlunya penanganan imbalance yang lebih kuat (mis. focal loss atau oversampling). Kami akan memurnikan lexical cues dan menambah prior berbasis country, serta meninjau distribusi attention pada judul yang salah klasifikasi.
-
-\section{Diskusi}
-Model teks-only ini sudah memberi kenaikan signifikan dibanding baseline awal. Arah berikutnya adalah menambahkan engineered features (lexical cues, panjang judul, country) dalam kerangka dual-path sebagai ablation; risikonya overfitting pada lexicon jika frekuensi rendah. Jika fusion kurang stabil atau sumber daya mencukupi, opsi lain adalah mencoba encoder lebih kuat (mis. \texttt{roberta-base/large}).
+\begin{enumerate}
+    \item \textbf{Validasi vs Test Gap}
+    
+    Perbedaan signifikan antara hazard F1 pada validation (0{,}718) dan test (0{,}604) mengindikasikan overfitting pada distribusi hazard dalam training set. Sebaliknya, product head menunjukkan generalisasi lebih baik dengan F1 test (0{,}654) bahkan lebih tinggi dari validation (0{,}640), menunjukkan robustness terhadap domain shift.
+    
+    \item \textbf{Error Analysis}
+    
+    Analisis kesalahan menunjukkan error mengelompok pada kategori hazard minoritas. Confusion matrix mengungkapkan bahwa kategori dominan seperti \textit{biological} dan \textit{chemical} sering menyerap prediksi dari kelas langka, mencerminkan bias model terhadap kelas mayoritas meskipun telah menggunakan class weights.
+    
+    \item \textbf{Implikasi}
+    
+    Product head yang lebih stabil mengindikasikan bahwa signal untuk kategorisasi produk lebih konsisten across splits. Hazard classification lebih menantang karena dependensi pada kata kunci spesifik yang mungkin berbeda distribusinya antar splits. Peningkatan performa memerlukan strategi penanganan imbalance yang lebih agresif, khususnya untuk hazard minoritas.
+\end{enumerate}
 
 \section{Kesimpulan dan Pekerjaan Lanjutan}
 Kami memaparkan sistem Transformer multi-task berbasis BERT untuk SemEval 2025 Task 9 Sub-Task 1 yang berhasil mengklasifikasikan hazard dan product categories dari judul recall makanan yang sangat pendek. Model \texttt{bert-base-uncased} dengan dua classification heads dan class weights mencapai combined macro F1 sebesar 0{,}679 pada validation set dan 0{,}629 pada test blind set. Hasil ini menunjukkan bahwa pendekatan multi-task learning efektif untuk tugas klasifikasi ganda pada teks singkat dengan distribusi label yang tidak seimbang.
@@ -111,9 +113,6 @@ Pekerjaan lanjutan mencakup beberapa arah:
 \end{itemize}
 
 Kode sumber lengkap tersedia di \url{https://github.com/SjdnDzikran/food-hazard-detection}.
-
-\section*{Acknowledgment}
-Kami berterima kasih kepada pengajar mata kuliah atas panduan, serta penyelenggara SemEval atas data dan baseline code.
 
 \begin{thebibliography}{00}
 \bibitem{devlin2019bert} J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova, ``BERT: Pre-training of deep bidirectional transformers for language understanding,'' in \textit{Proc. NAACL-HLT}, 2019.
