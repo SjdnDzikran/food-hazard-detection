@@ -7,6 +7,7 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{hyperref}
 
 \begin{document}
 
@@ -15,7 +16,7 @@
 \author{\IEEEauthorblockN{Gafna Al Faatiha Prabowo, Dzikran Azka Sajidan, Muhammad Khairul Hasbi, Rifky Setiawan}
 \IEEEauthorblockA{\textit{Department of Computer Science, Universitas Gadjah Mada}\\
 Yogyakarta, Indonesia\\
-Email: \{gafnaalfaatihaprabowo, dzikranazkasajidan, muhammadkhairulhasbi2004, rifky.setiawan\}@mail.ugm.ac.id}
+Email: \{gafnaalfaatihaprabowo, dzikranazkasajidan, muhammadkhairulhasbi2004, rifkysetiawan\}@mail.ugm.ac.id}
 }
 
 \maketitle
@@ -98,7 +99,7 @@ Error awal mengelompok pada hazard minoritas; confusion matrix menunjukkan biolo
 Model teks-only ini sudah memberi kenaikan signifikan dibanding baseline awal. Arah berikutnya adalah menambahkan engineered features (lexical cues, panjang judul, country) dalam kerangka dual-path sebagai ablation; risikonya overfitting pada lexicon jika frekuensi rendah. Jika fusion kurang stabil atau sumber daya mencukupi, opsi lain adalah mencoba encoder lebih kuat (mis. \texttt{roberta-base/large}).
 
 \section{Kesimpulan dan Pekerjaan Lanjutan}
-Kami memaparkan sistem Transformer multi-task BERT untuk SemEval 2025 Task 9 Sub-Task 1. Langkah berikutnya: menyelesaikan pelatihan, memperbarui Table~\ref{tab:results}, menjalankan ablation, dan mengirim prediksi ke Codalab. Pekerjaan lanjutan mencakup pemanfaatan data tak berlabel untuk domain-adaptive pretraining serta memanfaatkan supervisi hazard/product vector dari Sub-Task 2 sebagai auxiliary training.
+Kami memaparkan sistem Transformer multi-task BERT untuk SemEval 2025 Task 9 Sub-Task 1. Langkah berikutnya: menyelesaikan pelatihan, memperbarui Table~\ref{tab:results}, menjalankan ablation, dan mengirim prediksi ke Codalab. Kode sumber tersedia di \url{https://github.com/SjdnDzikran/food-hazard-detection}. Pekerjaan lanjutan mencakup pemanfaatan data tak berlabel untuk domain-adaptive pretraining dan eksplorasi signal auxiliary untuk memperkuat prediksi hazard dan product.
 
 \section*{Acknowledgment}
 Kami berterima kasih kepada pengajar mata kuliah atas panduan, serta penyelenggara SemEval atas data dan baseline code.
