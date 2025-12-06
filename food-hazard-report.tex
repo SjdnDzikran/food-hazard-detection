@@ -59,9 +59,6 @@ Dataset dibagi menjadi train (5{,}082 sampel), validation (565 sampel), dan test
 
 \section{Hasil dan Analisis}
 \subsection{Performa Model}
-Table~\ref{tab:results} menunjukkan performa model terbaik pada validation dan test sets. Model mencapai combined macro F1 sebesar 0{,}679 pada validation set, dengan hazard F1 (0{,}718) lebih tinggi dari product F1 (0{,}640). Pada test set, combined macro F1 mencapai 0{,}629, dengan product F1 (0{,}654) sedikit lebih tinggi dari hazard F1 (0{,}604). Penurunan hazard F1 dari validasi ke test sebesar 0{,}114 poin mengindikasikan overfitting pada kategori hazard tertentu.
-
-Figure~\ref{fig:f1curves} menunjukkan kurva learning selama pelatihan. Model konvergen setelah epoch ke-4, dengan hazard F1 konsisten lebih tinggi dari product F1 pada validation set. Early stopping dipicu pada epoch ke-6 berdasarkan combined macro F1.
 
 \begin{table}[htbp]
 \caption{Macro F1 Scores (best run)}
@@ -77,12 +74,88 @@ Test (blind) & 0.6043 & 0.6544 & 0.6293 \\
 \end{tabular}
 \end{table}
 
+\noindent\hspace*{0.6em}
+Table~\ref{tab:results} menunjukkan performa model terbaik pada validation dan test sets. Model mencapai combined macro F1 sebesar 0{,}679 pada validation set, dengan hazard F1 (0{,}718) lebih tinggi dari product F1 (0{,}640). Pada test set, combined macro F1 mencapai 0{,}629, dengan product F1 (0{,}654) sedikit lebih tinggi dari hazard F1 (0{,}604). Penurunan hazard F1 dari validasi ke test sebesar 0{,}114 poin mengindikasikan overfitting pada kategori hazard tertentu.
+
+Hasil visualisasi tersebut menunjukkan beberapa pola penting: (1) performa hazard F1 lebih rendah dibanding product F1 pada test set, menegaskan bahwa hazard classification lebih sulit akibat distribusi label yang tidak seimbang; (2) confusion matrix menegaskan bahwa model cenderung mengkonversi banyak kelas minoritas ke kelas mayoritas; dan (3) kurva training loss serta tabel per-epoch memperlihatkan bahwa model mengalami konvergensi stabil tanpa indikasi underfitting.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.45\textwidth]{figures/training_loss.png}
+\caption{Kurva training loss per epoch. Penurunan loss yang stabil mengindikasikan proses pembelajaran yang konvergen.}
+\label{fig:trainloss}
+\end{figure}
+
+\noindent\hspace*{0.6em}
+Figure~\ref{fig:trainloss} menunjukkan penurunan yang konsisten dari epoch 1 hingga epoch 8, dengan pola kurva eksponensial yang umum terjadi pada model Transformer. Penurunan loss yang halus tanpa fluktuasi besar mengindikasikan bahwa proses optimisasi berjalan stabil. Namun, karena gap performa antara validation dan test cukup signifikan pada hazard classification, hal ini menunjukkan bahwa meskipun model belajar dengan baik, ia belum mampu mengeneralisasi secara optimal pada kategori minoritas.
+
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.45\textwidth]{figures/f1_curves.png}
 \caption{Validation macro F1 per epoch for hazard, product, and combined scores.}
 \label{fig:f1curves}
 \end{figure}
+
+\noindent\hspace*{0.6em}
+Figure~\ref{fig:f1curves} menunjukkan kurva learning selama pelatihan. Model konvergen setelah epoch ke-4, dengan hazard F1 konsisten lebih tinggi dari product F1 pada validation set. Early stopping dipicu pada epoch ke-6 berdasarkan combined macro F1.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.45\textwidth]{figures/barchart_finaltest.png}
+\caption{Macro F1 pada data test untuk hazard, product, dan combined. Grafik ini menunjukkan bahwa model mencapai performa terbaik pada tugas product classification.}
+\label{fig:testbarchart}
+\end{figure}
+
+\noindent\hspace*{0.6em}
+Figure~\ref{fig:testbarchart} menyajikan skor Macro F1 pada data test untuk tiga task yang dievaluasi: hazard classification, product classification, dan combined metric. Terlihat bahwa skor tertinggi dicapai pada product classification ($\approx 0{,}65$), diikuti oleh combined ($\approx 0{,}63$), sementara hazard classification menunjukkan performa terendah ($\approx 0{,}60$).
+
+Perbedaan ini menegaskan bahwa hazard detection merupakan task yang lebih menantang akibat distribusi label yang tidak seimbang serta deskripsi tekstual yang lebih beragam dan ambigu. Sebaliknya, task product cenderung lebih stabil karena variasi label yang lebih terstruktur.
+
+\begin{table}[htbp]
+\centering
+\caption{Training dan validation metrics per epoch.}
+\label{tab:trainmetrics}
+\begin{tabular}{rrrrrr}
+\hline
+ Epoch &  Train Loss &  Val Hazard F1 &  Val Product F1 &  Combined F1 \\
+\hline
+     1 &      5.1489 &         0.3708 &          0.1744 &       0.2726 \\
+     2 &      3.7313 &         0.6057 &          0.4967 &       0.5512 \\
+     3 &      2.7637 &         0.6294 &          0.5529 &       0.5912 \\
+     4 &      2.1449 &         0.6813 &          0.6069 &       0.6441 \\
+     5 &      1.7425 &         0.6819 &          0.6232 &       0.6526 \\
+     6 &      1.4737 &         0.7053 &          0.6291 &       0.6672 \\
+     7 &      1.2618 &         0.7052 &          0.6313 &       0.6683 \\
+     8 &      1.1647 &         0.7183 &          0.6397 &       0.6790 \\
+\hline
+\end{tabular}
+\end{table}
+
+\noindent\hspace*{0.6em}
+Table~\ref{tab:trainmetrics} merangkum metrik utama pada setiap epoch: training loss, hazard F1, product F1, dan combined metric.
+Dari tabel terlihat bahwa:
+
+\begin{itemize}
+    \item Training loss menurun tajam dari 5.15 ke 1.16, menandakan proses optimisasi efektif.
+    \item Hazard F1 meningkat dari 0.37 ke 0.71, menunjukkan pembelajaran kelas hazard berlangsung substansial.
+    \item Product F1 meningkat lebih stabil, dari 0.17 ke 0.64.
+    \item Combined metric mencapai nilai tertinggi 0.679 pada epoch 8.
+\end{itemize}
+
+\noindent\hspace*{0.6em}
+Tabel ini memperlihatkan pola konsisten seperti pada grafik, sekaligus menjadi bukti kuantitatif bahwa performa model terus meningkat selama pelatihan hingga mencapai konvergensi.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.45\textwidth]{figures/cm.png}
+\caption{Confusion matrix untuk kategori hazard. Dominasi prediksi pada kelas mayoritas memperlihatkan masalah imbalance yang signifikan.}
+\label{fig:hazcm}
+\end{figure}
+
+\noindent\hspace*{0.6em}
+Figure~\ref{fig:hazcm} menggambarkan distribusi prediksi model terhadap label sebenarnya untuk kategori hazard. Matriks ini memperlihatkan bahwa sebagian besar prediksi terkonsentrasi pada beberapa kelas mayoritas, seperti allergens dan biological, sementara kelas minoritas seperti migration, organoleptic aspects, dan food additives hampir selalu salah diprediksi.
+
+Fenomena ini menunjukkan bahwa model sangat dipengaruhi oleh class imbalance, sehingga tidak mampu membedakan fitur khas dari kategori yang jarang muncul. Hal ini menjadi indikasi kuat bahwa strategi seperti re-weighting, oversampling, atau focal loss diperlukan untuk meningkatkan sensitivitas terhadap kelas minoritas.
 
 \subsection{Analisis}
 Analisis performa model mengungkapkan beberapa temuan penting:
